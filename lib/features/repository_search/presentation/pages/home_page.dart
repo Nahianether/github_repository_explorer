@@ -71,9 +71,16 @@ class _HomePageState extends ConsumerState<HomePage> {
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 6),
-            action: errorMessage.contains('rate limit')
-                ? null
+            duration: const Duration(seconds: 8),
+            action: errorMessage.contains('rate limit') || errorMessage.contains('API')
+                ? SnackBarAction(
+                    label: 'Show Cached',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      _lastErrorMessage = null;
+                      ref.read(repositoryProvider.notifier).loadCachedRepositories();
+                    },
+                  )
                 : SnackBarAction(
                     label: 'Retry',
                     textColor: Colors.white,
@@ -202,42 +209,74 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildBody(RepositoryState state, ThemeData theme, AppColorScheme colorScheme) {
     return switch (state) {
+      RepositoryInitial() => const ShimmerLoading(),
       RepositoryLoading() => const ShimmerLoading(),
-      RepositoryLoaded() => RefreshIndicator(
-          onRefresh: () async {
-            ref.read(repositoryProvider.notifier).refreshRepositories();
-          },
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: state.hasReachedMax ? state.repositories.length : state.repositories.length + 1,
-            itemBuilder: (context, index) {
-              if (index >= state.repositories.length) {
-                return state.isLoadingMore
-                    ? const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    : const SizedBox.shrink();
-              }
-
-              final repository = state.repositories[index];
-              return RepositoryCard(
-                repository: repository,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RepositoryDetailPage(
-                        repository: repository,
+      RepositoryLoaded() => Column(
+          children: [
+            if (state.isFromCache)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                color: colorScheme.primaryContainer,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.offline_bolt,
+                      size: 16,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Showing cached data',
+                      style: TextStyle(
+                        color: colorScheme.onPrimaryContainer,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  );
+                  ],
+                ),
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.read(repositoryProvider.notifier).refreshRepositories();
                 },
-              );
-            },
-          ),
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: state.hasReachedMax ? state.repositories.length : state.repositories.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index >= state.repositories.length) {
+                      return state.isLoadingMore
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : const SizedBox.shrink();
+                    }
+
+                    final repository = state.repositories[index];
+                    return RepositoryCard(
+                      repository: repository,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RepositoryDetailPage(
+                              repository: repository,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       RepositoryError() => Center(
           child: Column(
@@ -265,16 +304,29 @@ class _HomePageState extends ConsumerState<HomePage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  ref.read(repositoryProvider.notifier).refreshRepositories();
-                },
-                child: const Text('Retry'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.read(repositoryProvider.notifier).refreshRepositories();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                  if (state.message.contains('rate limit') || state.message.contains('API')) ...{
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: () {
+                        ref.read(repositoryProvider.notifier).loadCachedRepositories();
+                      },
+                      child: const Text('Show Cached Data'),
+                    ),
+                  },
+                ],
               ),
             ],
           ),
         ),
-      _ => const SizedBox.shrink(),
     };
   }
 }

@@ -7,6 +7,7 @@ import '../core/network/network_info.dart';
 import '../features/repository_search/domain/repositories/repository_repository.dart';
 import '../features/repository_search/domain/usecases/search_repositories.dart';
 import '../features/repository_search/domain/usecases/refresh_repositories.dart';
+import '../features/repository_search/domain/usecases/get_cached_repositories.dart';
 
 import '../features/repository_search/data/repositories/repository_repository_impl.dart';
 import '../features/repository_search/data/datasources/remote/repository_remote_data_source.dart';
@@ -24,6 +25,7 @@ Future<void> init() async {
 
   sl.registerLazySingleton(() => SearchRepositoriesUseCase(sl()));
   sl.registerLazySingleton(() => RefreshRepositoriesUseCase(sl()));
+  sl.registerLazySingleton(() => GetCachedRepositoriesUseCase(sl()));
 
   sl.registerLazySingleton<RepositoryRepository>(
     () => RepositoryRepositoryImpl(

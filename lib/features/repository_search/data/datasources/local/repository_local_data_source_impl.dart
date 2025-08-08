@@ -18,4 +18,9 @@ class RepositoryLocalDataSourceImpl implements RepositoryLocalDataSource {
     final key = '${query}_$page';
     await cacheBox.put(key, searchResult);
   }
+
+  @override
+  Future<List<SearchResultModel>> getAllCachedData() async {
+    return cacheBox.values.toList();
+  }
 }

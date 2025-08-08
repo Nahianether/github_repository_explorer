@@ -14,4 +14,6 @@ abstract class RepositoryRepository {
     required int page,
     required int perPage,
   });
+
+  Future<Either<Failure, SearchResultEntity>> getCachedRepositories();
 }

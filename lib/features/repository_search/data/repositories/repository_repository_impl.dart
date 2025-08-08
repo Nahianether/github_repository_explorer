@@ -6,6 +6,7 @@ import '../../domain/entities/search_result_entity.dart';
 import '../../domain/repositories/repository_repository.dart';
 import '../datasources/remote/repository_remote_data_source.dart';
 import '../datasources/local/repository_local_data_source.dart';
+import '../models/repository_model.dart';
 
 class RepositoryRepositoryImpl implements RepositoryRepository {
   final RepositoryRemoteDataSource remoteDataSource;
@@ -89,6 +90,46 @@ class RepositoryRepositoryImpl implements RepositoryRepository {
       }
     } else {
       return const Left(ServerFailure('No internet connection for refresh'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, SearchResultEntity>> getCachedRepositories() async {
+    try {
+      debugPrint('Getting all cached repositories');
+      final cachedResults = await localDataSource.getAllCachedData();
+      
+      if (cachedResults.isEmpty) {
+        return const Left(CacheFailure('No cached data available'));
+      }
+
+      // Combine all cached results into one
+      final allRepositories = <RepositoryModel>[];
+      for (final result in cachedResults) {
+        allRepositories.addAll(result.items);
+      }
+
+      // Remove duplicates based on repository ID
+      final uniqueRepositories = <RepositoryModel>[];
+      final seenIds = <int>{};
+      for (final repo in allRepositories) {
+        if (!seenIds.contains(repo.id)) {
+          seenIds.add(repo.id);
+          uniqueRepositories.add(repo);
+        }
+      }
+
+      // Create a combined search result
+      final combinedResult = cachedResults.first.copyWith(
+        totalCount: uniqueRepositories.length,
+        items: uniqueRepositories,
+      );
+
+      debugPrint('Returned ${uniqueRepositories.length} unique cached repositories');
+      return Right(combinedResult);
+    } catch (e) {
+      debugPrint('Error getting cached repositories: $e');
+      return Left(CacheFailure('Failed to load cached data: $e'));
     }
   }
 }

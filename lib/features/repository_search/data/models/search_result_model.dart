@@ -36,4 +36,16 @@ class SearchResultModel extends SearchResultEntity {
       _$SearchResultModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$SearchResultModelToJson(this);
+
+  SearchResultModel copyWith({
+    int? totalCount,
+    bool? incompleteResults,
+    List<RepositoryModel>? items,
+  }) {
+    return SearchResultModel(
+      totalCount: totalCount ?? this.totalCount,
+      incompleteResults: incompleteResults ?? this.incompleteResults,
+      items: items ?? this.items,
+    );
+  }
 }
